@@ -1,0 +1,4 @@
+(executable
+ (public_name pf23)
+ (name main)
+ (libraries pf23))
