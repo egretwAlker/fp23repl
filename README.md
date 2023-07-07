@@ -11,11 +11,11 @@ The accepted language is the super set of above
 
 Totally interactive
 
-efficacity
-
 pretty print
 
 trace failure?
 
 TODO
 dico -> arbre lexical
+
+Time complexity :
