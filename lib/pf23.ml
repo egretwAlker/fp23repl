@@ -16,9 +16,9 @@ let is_stackop e = List.mem e [Dup; Drop; Swap; Rot]
 let is_basic = function Id _ -> false | If -> false | Then -> false | Else -> false | Colon -> false | Semic -> false | _ -> true
 
 let to_string : element -> string = function B true -> "TRUE" | B false -> "FALSE" | N x -> string_of_int x
-                       | Dup -> "DUP" | Drop -> "DROP" | Swap -> "SWAP" | Rot -> "ROT"
-                       | Add -> "+" |  Sub -> "-" | Mul -> "*" | Div -> "/" | Inf -> "<" | Sup -> ">" | Eq -> "=" | Neq -> "<>"
-                       | Id s -> s | If -> "IF" | Then -> "THEN" | Else -> "ELSE" | Endif -> "ENDIF" | Colon -> ":" | Semic -> ";"
+                                           | Dup -> "DUP" | Drop -> "DROP" | Swap -> "SWAP" | Rot -> "ROT"
+                                           | Add -> "+" |  Sub -> "-" | Mul -> "*" | Div -> "/" | Inf -> "<" | Sup -> ">" | Eq -> "=" | Neq -> "<>"
+                                           | Id s -> s | If -> "IF" | Then -> "THEN" | Else -> "ELSE" | Endif -> "ENDIF" | Colon -> ":" | Semic -> ";"
 
 let of_string = function "TRUE" -> B true | "FALSE" -> B false
                        | "DUP" -> Dup | "DROP" -> Drop | "SWAP" -> Swap | "ROT" -> Rot
@@ -52,10 +52,10 @@ let rec text (p:element list) : string = match p with [] -> "" | e::[] -> to_str
 
 (* fonction auxiliaire : évaluation d'un opérateur binaire *)
 let eval_binop op (e1:element) (e2:element) : element = match (e1, e2) with (N x, N y) -> (
-  match op with Add -> N (y+x) | Sub -> N (y-x) | Mul -> N (y*x) | Div -> N (y/x)
-              | Inf -> B (y < x) | Sup -> B (x < y)
-              | Eq -> B (y=x) | Neq -> B (y <> x)
-              | _ -> expect "binop"
+    match op with Add -> N (y+x) | Sub -> N (y-x) | Mul -> N (y*x) | Div -> N (y/x)
+                | Inf -> B (y < x) | Sup -> B (x < y)
+                | Eq -> B (y=x) | Neq -> B (y <> x)
+                | _ -> expect "binop"
   ) | _ -> fail_at op
 
 (* fonction auxiliaire : évaluation d'un opérateur binaire *)
@@ -95,35 +95,36 @@ let rec eval_prog env prog =
   let make_env sp sdico = (stk, (sp, [])::sdico) in
 
   match prog with [] -> env | e::progl ->
-                if not (effective env) then eval_prog (step env e) progl else
-                match e with Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
-                           | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
-                           | If -> (match stk with (B b)::stkl -> eval_prog (stkl, (Cond (Some b), [])::sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
-                           | Then -> (stk, l)
-                           | _ -> if is_basic e then eval_prog (eval_basic stk e, sdico) progl
-                                                else fail_at e
+    if not (effective env) then eval_prog (step env e) progl else
+      match e with
+        Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
+      | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
+      | If -> (match stk with (B b)::stkl -> eval_prog (stkl, (Cond (Some b), [])::sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
+      | Then -> (stk, l)
+      | _ -> if is_basic e then eval_prog (eval_basic stk e, sdico) progl
+        else fail_at e
 
 and step env e =
   if effective env then eval_prog env [e;] else
 
-  let end_def (env:env) =
-    match env with (stk, (Def (Some name, _, reg), _)::(sp, dico)::l) -> (stk, (sp, (name, List.rev reg)::dico)::l) | _ -> failwith "Can not end_def, no outter dico" in
+    let end_def (env:env) =
+      match env with (stk, (Def (Some name, _, reg), _)::(sp, dico)::l) -> (stk, (sp, (name, List.rev reg)::dico)::l) | _ -> failwith "Can not end_def, no outter dico" in
 
-  let (stk, sp, _, l, sdico) = unpack env in
-  let make_env sp sdico = (stk, (sp, [])::sdico) in
+    let (stk, sp, _, l, sdico) = unpack env in
+    let make_env sp sdico = (stk, (sp, [])::sdico) in
 
-  match sp with
-  | Cond c -> (match e with If -> make_env (Cond None) sdico | Then -> (stk, l) | Endif -> (stk, l) | Else -> make_env (Cond (option_not c)) l | _ -> env)
-  | Def (name, cnt, reg) ->
-    if name = None then
-      (match e with Id s -> make_env (Def (Some s, cnt, reg)) l | _ -> expect "Id")
-    else begin
-      match e with Colon -> make_env (Def (name, cnt+1, e::reg)) l
-                 | Semic -> if cnt = 0 then end_def env
-                                       else make_env (Def (name, cnt-1, e::reg)) l
-                 | _ -> make_env (Def (name, cnt, e::reg)) l
-    end
-  | Call -> failwith "Unkonwn error"
+    match sp with
+    | Cond c -> (match e with If -> make_env (Cond None) sdico | Then -> (stk, l) | Endif -> (stk, l) | Else -> make_env (Cond (option_not c)) l | _ -> env)
+    | Def (name, cnt, reg) ->
+      if name = None then
+        (match e with Id s -> make_env (Def (Some s, cnt, reg)) l | _ -> expect "Id")
+      else begin
+        match e with Colon -> make_env (Def (name, cnt+1, e::reg)) l
+                   | Semic -> if cnt = 0 then end_def env
+                     else make_env (Def (name, cnt-1, e::reg)) l
+                   | _ -> make_env (Def (name, cnt, e::reg)) l
+      end
+    | Call -> failwith "Unkonwn error"
 
 let empty_env = ([], [(Call, []);])
 

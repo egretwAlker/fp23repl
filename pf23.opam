@@ -7,7 +7,6 @@ authors: ["XIA Tianxiang"]
 license: "LICENSE"
 tags: ["topics" "to describe" "your" "project"]
 homepage: "https://github.com/egretwalker/pf23"
-doc: "https://url/to/documentation"
 bug-reports: "https://github.com/egretwalker/pf23/issues"
 depends: [
   "ocaml"
