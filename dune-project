@@ -13,8 +13,6 @@
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
-
 (package
  (name pf23)
  (synopsis "A short synopsis")
