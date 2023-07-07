@@ -4,7 +4,51 @@ type name = string
 type scope = Cond of bool option | Def of name option*int*element list | Call
 type prog = element list
 type stack = element list
-type dico = (name*prog) list
+
+module Dico :
+sig
+  exception Request_dico_failed of name
+  type dico
+  val empty_dico : dico
+  val insert : dico -> name * prog -> dico
+  val request : dico -> name -> prog
+end
+=
+struct
+exception Request_dico_failed of string
+type dico = Node of prog option * (char*dico) list
+let empty_dico = Node (None, [])
+
+let tail s = String.sub s 1 (String.length s - 1)
+
+let rec insert dico p = let Node (q, l) = dico in
+  match p with
+  | ("", prog) -> Node (Some prog, l)
+  | (s, prog) ->
+    let (s0, sl) = (s.[0], tail s) in
+    match l with
+    | [] -> Node (q, [(s0, insert (Node (None, [])) (sl, prog));])
+    | (c, d)::l ->
+      if s0 = c then
+        Node (q, (c, insert d (sl, prog))::l)
+      else
+        let Node (q, l) = insert (Node (q, l)) p in Node (q, (c, d)::l)
+
+let rec request dico s =
+  let Node (q, l) = dico in
+  let fail () = raise (Request_dico_failed s) in
+  match s with
+  | "" -> (match q with Some prog -> prog | None -> fail ())
+  | _ ->
+    let (s0, sl) = (s.[0], tail s) in
+    match l with
+    | [] -> fail ()
+    | (c, d)::l ->
+      if s0 = c then request d sl
+      else request (Node (q, l)) s
+end
+
+open Dico
 type sdico = (scope*dico) list
 type env = stack*sdico
 
@@ -28,7 +72,6 @@ let of_string = function "TRUE" -> B true | "FALSE" -> B false
 
 let fail_at e = failwith ("Failed at element \""^to_string e^"\"")
 let expect s = failwith ("\""^s^"\" expected")
-let not_expected s = failwith ("\""^s^"\" not expected")
 
 (** fonction utilitaire : 
     [split s] découpe le texte [s] en une suite de mot. 
@@ -43,12 +86,12 @@ let split (s:string) : string list =
 (** transforme un texte (représentant un programme ou une pile)
     en une suite de symboles du langage (e.g., "42" et "DUP") 
 *)
-let parse (s:string) : element list = List.map of_string (split s)
+let parse (s:string) : prog = List.map of_string (split s)
 
 (** transforme une suite de symboles du langage (représentant un programme ou une pile) en un texte équivalent. 
     Par exemple : [text (parse "1 2 +")) = "1 2 +"].
 *)
-let rec text (p:element list) : string = match p with [] -> "" | e::[] -> to_string e | e::p -> to_string e^" "^text p
+let rec text (p:prog) : string = match p with [] -> "" | e::[] -> to_string e | e::p -> to_string e^" "^text p
 
 (* fonction auxiliaire : évaluation d'un opérateur binaire *)
 let eval_binop op (e1:element) (e2:element) : element = match (e1, e2) with (N x, N y) -> (
@@ -79,27 +122,27 @@ let unpack (env:env) =
   match env with (stk, (sp, dico)::l) -> (stk, sp, dico, l, (sp, dico)::l)
                | _ -> failwith "No dico found, bad env"
 
-let rec find (sdico:sdico) (name:name) : prog =
-  match sdico with [] -> failwith "Find failed"
-                 | (_, [])::l -> find l name
-                 | (sp, (name', prog)::d)::l -> if name=name' then prog else find ((sp, d)::l) name
-
 let effective env =
   let (_, sp, _, _, _) = unpack env in
   match sp with Cond (Some true) -> true | Call -> true | _ -> false
 
-let get_stk = function (stk, _) -> stk
+let get_stk : env -> stack = function (stk, _) -> stk
+
+let rec find (sdico:sdico) (name:name) : prog =
+  match sdico with
+  | [] -> failwith ("\""^name^"\" not found in sdico")
+  | (_, dico)::l -> (try request dico name with Request_dico_failed _ -> find l name)
 
 let rec eval_prog env prog = 
   let (stk, _, _, l, sdico) = unpack env in
-  let make_env sp sdico = (stk, (sp, [])::sdico) in
+  let make_env ?(stk=stk) sp sdico = (stk, (sp, empty_dico)::sdico) in
 
   match prog with [] -> env | e::progl ->
                 if not (effective env) then eval_prog (step env e) progl else
                 match e with
                   Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
                 | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
-                | If -> (match stk with (B b)::stkl -> eval_prog (stkl, (Cond (Some b), [])::sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
+                | If -> (match stk with (B b)::stkl -> eval_prog (make_env ~stk:stkl (Cond (Some b)) sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
                 | Then -> eval_prog (stk, l) progl
                 | Else -> eval_prog (make_env (Cond (Some false)) l) progl
                 | Endif -> eval_prog (stk, l) progl
@@ -110,10 +153,10 @@ and step env e =
   if effective env then eval_prog env [e;] else
 
   let end_def (env:env) =
-    match env with (stk, (Def (Some name, _, reg), _)::(sp, dico)::l) -> (stk, (sp, (name, List.rev reg)::dico)::l) | _ -> failwith "Can not end_def, no outter dico" in
+    match env with (stk, (Def (Some name, _, reg), _)::(sp, dico)::l) -> (stk, (sp, insert dico (name, List.rev reg))::l) | _ -> failwith "Can not end_def, no outter dico" in
 
   let (stk, sp, _, l, sdico) = unpack env in
-  let make_env sp sdico = (stk, (sp, [])::sdico) in
+  let make_env sp sdico = (stk, (sp, empty_dico)::sdico) in
 
   match sp with
   | Cond c -> (match e with If -> make_env (Cond None) sdico | Then -> (stk, l) | Endif -> (stk, l) | Else -> make_env (Cond (option_not c)) l | _ -> env)
@@ -128,6 +171,6 @@ and step env e =
     end
   | Call -> failwith "Unkonwn error"
 
-let empty_env = ([], [(Call, []);])
+let empty_env = ([], [(Call, empty_dico);])
 
 let interpret s = s |> parse |> eval_prog empty_env |> get_stk |> text

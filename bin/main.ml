@@ -1,6 +1,6 @@
 open Pf23
 
-let show env = match env with (stk, _) -> print_endline (text stk); env
+let show (env : env) : env = match env with (stk, _) -> print_endline (text stk); env
 
 let main () =
   let rec repl env =
