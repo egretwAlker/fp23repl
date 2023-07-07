@@ -88,13 +88,15 @@ let effective env =
   let (_, sp, _, _, _) = unpack env in
   match sp with Cond (Some true) -> true | Call -> true | _ -> false
 
+let get_stk = function (stk, _) -> stk
+
 let rec eval_prog env prog = 
   let (stk, _, _, l, sdico) = unpack env in
   let make_env sp sdico = (stk, (sp, [])::sdico) in
 
   match prog with [] -> env | e::progl ->
                 if not (effective env) then eval_prog (step env e) progl else
-                match e with Id s -> eval_prog (eval_prog (make_env Call sdico) (find sdico s)) progl
+                match e with Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
                            | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
                            | If -> (match stk with (B b)::stkl -> eval_prog (stkl, (Cond (Some b), [])::sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
                            | Then -> (stk, l)
@@ -124,6 +126,5 @@ and step env e =
   | Call -> failwith "Unkonwn error"
 
 let empty_env = ([], [(Call, []);])
-let get_stk = function (stk, _) -> stk
 
 let interpret s = s |> parse |> eval_prog empty_env |> get_stk |> text
