@@ -20,6 +20,7 @@ let t_eval =
     "fibonacci" >:: (fun _ -> assert_equal (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
                                                        : FIB 0 1 : FIB ROT ROT DUP 0 = IF DROP DROP ELSE 1 - ROT $+ ROT ROT DROP FIB ENDIF ; FIB ;
                                                        7 FIB FIB") "233");
+    "stylé" >:: (fun _ -> assert_equal (interpret "TRUE IF 2 ELSE 3 ELSE 4") "4 2");
   ]
 
 let () =

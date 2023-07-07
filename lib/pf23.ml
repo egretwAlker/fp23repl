@@ -1,10 +1,18 @@
-type element = B of bool | N of int | Dup | Drop | Swap | Rot | Add | Sub | Mul | Div | Inf | Sup | Eq | Neq | Id of string
-             | If | Then | Else | Endif | Colon | Semic
 type name = string
+type element = B of bool | N of int | Dup | Drop | Swap | Rot | Add | Sub | Mul | Div | Inf | Sup | Eq | Neq | Id of name
+             | If | Then | Else | Endif | Colon | Semic
+
+(** Cond - conditionnel, Def - définition de fonction, Call - état d'exécution (dans un appel de fonction ou l'exécution globale) *)
 type scope = Cond of bool option | Def of name option*int*element list | Call
+
+(** liste d'éléments qui peuvent s'appliquer à un stack *)
 type prog = element list
+
+(** stack sur lequel on opère *)
 type stack = element list
 
+(** dictionnaire réalisé par arbre lexical
+*)
 module Dico :
 sig
   exception Request_dico_failed of name
@@ -19,6 +27,7 @@ exception Request_dico_failed of string
 type dico = Node of prog option * (char*dico) list
 let empty_dico = Node (None, [])
 
+(** supprime le premier char *)
 let tail s = String.sub s 1 (String.length s - 1)
 
 let rec insert dico p = let Node (q, l) = dico in
@@ -49,14 +58,21 @@ let rec request dico s =
 end
 
 open Dico
+
+(** stack de dictionnaires, chaque élémenet d'un stack correspond à un scope *)
 type sdico = (scope*dico) list
+
 type env = stack*sdico
 
 let option_not = function None -> None | Some x -> Some (not x)
 
+(** est opérateur binaire *)
 let is_binop e = List.mem e [Add; Sub; Mul; Div; Inf; Sup; Eq; Neq]
+
+(** est stack opérateur *)
 let is_stackop e = List.mem e [Dup; Drop; Swap; Rot]
 
+(** les éléments basiques sont ceux qui s'appliquenent directement sur un stack sans étape intermédiare *)
 let is_basic = function Id _ -> false | If -> false | Then -> false | Else -> false | Colon -> false | Semic -> false | _ -> true
 
 let to_string : element -> string = function B true -> "TRUE" | B false -> "FALSE" | N x -> string_of_int x
@@ -88,12 +104,9 @@ let split (s:string) : string list =
 *)
 let parse (s:string) : prog = List.map of_string (split s)
 
-(** transforme une suite de symboles du langage (représentant un programme ou une pile) en un texte équivalent. 
-    Par exemple : [text (parse "1 2 +")) = "1 2 +"].
-*)
 let rec text (p:prog) : string = match p with [] -> "" | e::[] -> to_string e | e::p -> to_string e^" "^text p
 
-(* fonction auxiliaire : évaluation d'un opérateur binaire *)
+(** fonction auxiliaire : évaluation d'un opérateur binaire *)
 let eval_binop op (e1:element) (e2:element) : element = match (e1, e2) with (N x, N y) -> (
     match op with Add -> N (y+x) | Sub -> N (y-x) | Mul -> N (y*x) | Div -> N (y/x)
                 | Inf -> B (y < x) | Sup -> B (x < y)
@@ -101,7 +114,7 @@ let eval_binop op (e1:element) (e2:element) : element = match (e1, e2) with (N x
               | _ -> expect "binop"
   ) | _ -> fail_at op
 
-(* fonction auxiliaire : évaluation d'un opérateur binaire *)
+(** fonction auxiliaire : évaluation d'un opérateur binaire *)
 let eval_stackop (stk:stack) op : stack =
   match op with Dup -> (match stk with e::l -> e::e::l | _ -> fail_at op)
               | Drop -> (match stk with _::l -> l | _ -> fail_at op)
@@ -109,7 +122,7 @@ let eval_stackop (stk:stack) op : stack =
               | Rot -> (match stk with a::b::c::l -> b::c::a::l | _ -> fail_at op)
               | _ -> expect "stackop"
 
-(* [step stk e] exécute l'élément [e] dans la pile [stk] 
+(** [step stk e] exécute l'élément [e] dans la pile [stk] 
    et retourne la pile résultante *)
 let eval_basic (stk:stack) (e:element) : stack =
   if is_basic e then
@@ -118,20 +131,33 @@ let eval_basic (stk:stack) (e:element) : stack =
     else e::stk (* it must be N or B *)
   else expect "basic"
 
-let unpack (env:env) = 
+(** fonction auxiliaire : shorthand pour prendre des valeurs d'un env *)
+let unpack (env : env) = 
   match env with (stk, (sp, dico)::l) -> (stk, sp, dico, l, (sp, dico)::l)
                | _ -> failwith "No dico found, bad env"
 
+(** si l'env est en état effectif
+  état effectif : en scope de Call ou Cond (Some true), i.e. on peut affecter le stack
+*)
 let effective env =
   let (_, sp, _, _, _) = unpack env in
   match sp with Cond (Some true) -> true | Call -> true | _ -> false
 
+(** obtient le stack d'un env *)
 let get_stk : env -> stack = function (stk, _) -> stk
 
+(** trouve un prog correspondant à name dans sdico *)
 let rec find (sdico:sdico) (name:name) : prog =
   match sdico with
   | [] -> failwith ("\""^name^"\" not found in sdico")
   | (_, dico)::l -> (try request dico name with Request_dico_failed _ -> find l name)
+
+(*
+Les 2 fonctions suivantes sont essentielles. Ici on explique l'algorithme.
+
+
+
+*)
 
 let rec eval_prog env prog = 
   let (stk, _, _, l, sdico) = unpack env in
