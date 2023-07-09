@@ -86,6 +86,9 @@ let of_string = function "TRUE" -> B true | "FALSE" -> B false
                        | "IF" -> If | "THEN" -> Then | "ELSE" -> Else | "ENDIF" -> Endif | ":" -> Colon | ";" -> Semic
                        | s -> try N (int_of_string s) with Failure _ -> Id s
 
+let%test _ = to_string (N 1) = "1"
+let%test _ = of_string "-1" = N (-1)
+
 let fail_at e = failwith ("Failed at element \""^to_string e^"\"")
 let expect s = failwith ("\""^s^"\" expected")
 
@@ -197,3 +200,14 @@ and step env e =
 let empty_env = ([], [(Call, empty_dico);])
 
 let interpret s = s |> parse |> eval_prog empty_env |> get_stk |> text
+
+let%test _ = (interpret "1 2 +") = "3"
+
+let%test "factorial" = (interpret ": FACTORIELLE DUP 1 > IF DUP 1 - FACTORIELLE * THEN ; 6 FACTORIELLE") = "720"
+
+let%test "non-mod-add" = interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ; 1 2 $+" = "3 2 1"
+
+let%test "fibonacci" = (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
+                                                   : FIB 0 1 : FIB ROT ROT DUP 0 = IF DROP DROP ELSE 1 - ROT $+ ROT ROT DROP FIB ENDIF ; FIB ;
+                                                   7 FIB FIB") = "233"
+let%test "grammar" = (interpret "TRUE IF 2 ELSE 3 ELSE 4") = "4 2"

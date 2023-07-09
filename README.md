@@ -18,7 +18,7 @@ Pf23 est un langage conçu par Monsieur Emmanuel Chailloux à une data inconnue 
           ∣ [-] (0o ∣ 0O) (0…7) { 0…7 ∣ _ }
           ∣ [-] (0b ∣ 0B) (0…1) { 0…1 ∣ _ }
 <bool> ::= TRUE|FALSE
-<id>   ::= une suite de char qui n'est pas un élément spécial défini dessus
+<id>   ::= une suite de char qui n'est pas un mot-clé défini dessus
 ```
 
 ## Sémantique
@@ -33,7 +33,7 @@ L'ensemble des expressions sans erreur d'exécution en s'appliquant à une pile 
 Le suivant est les effets de quelques expressions sur des piles; l'effet d'une expression quelconque est la composition des effets décrits dessous.
 
 ```
-Description de l'effet une opérateur : op (pile -- nouvelle pile)
+Description de l'effet d'une opérateur : op (pile -- nouvelle pile)
 
 opérateurs de pile
 - DUP  (n -- n n)         (dupliquer le sommet de pile)
@@ -49,7 +49,7 @@ opérateurs arithmétiques et de comparaison
 <cond> s'exécute de manière dépendante de la tête booléenne de la pile (IF supprime la tête)
 ```
 
-Les imbrications des fonctions et des conditionnelles sont possible. ```IF ... THEN``` crée une portée de variables à l'intérieur ainsi comme ```: fn ... ;``` . L'accès des vairables se fait lors de l'exécution de fonction au lieu de définition de fonction.
+Les imbrications des fonctions et des conditionnels sont possible. ```IF ... THEN``` crée une portée de variables à l'intérieur ainsi comme ```: fn ... ;``` . L'accès des vairables se fait lors de l'exécution de fonction au lieu de définition de fonction.
 
 ## Exécution, REPL
 
@@ -86,7 +86,7 @@ la seule chose le programme retourne à l'utilisateur.
 Soit cet élément modifie le stack soit non. Si cet élément modifie le stack,
 soit il est un opérateur basique ```<op>```, on peut l'appliquer directement au stack, soit il est un appel de fonction, on a besoin de savoir sa définition.
 
-Donc le programme a besoin de savoir au moins 1. le stack actuel; 2. si l'on est en état effectif ou non (dans un milieu d'une définition de fonction ou une branche de if non effective); 3. des dictionnaires pour des portées pilées. On appelle l'ensemble de ce genre d'information *environnement* (env).
+Donc le programme a besoin de savoir au moins 1. le stack actuel; 2. si l'on est en état effectif ou non (dans un milieu d'une définition de fonction ou une branche de if non effective); 3. des dictionnaires pour des portées. On appelle l'ensemble de ce genre d'information *environnement* (env).
 
 On ajoute des données d'informations à env pour qu'il existe une façon unique de mettre à jour env. On propose la définition de env suivant:
 
@@ -99,19 +99,19 @@ type env = stack*sdico
 stack représente la pile globale, un sdico est une pile de dictionnaires qui enregistrent les définitions de fonction dans chaque scope. On tient aussi quelques informations spéficiques aux scopes.
 
 ```
-scope conditionel
+* scope conditionel
 Cond of bool option
 
 Some true : on est en IF ... ou ELSE ... effectifs;
 Some false : on est en IF ... ou ELSE ... non-effectifs;
 None : on est dans un conditionnel qui est dans un conditionnel non effectif.
 
-scope défnition de fonction
+* scope défnition de fonction
 Def of name option*int*element list
 
 Le nom du fonction (option car on ne le sait pas en recevant :); une liste d'élément qui enregistre le programme de cette fonction.
 
-scope d'exécution globale ou d'une fonction
+* scope d'exécution globale ou d'une fonction
 Call
 ```
 
@@ -121,9 +121,21 @@ Complexité temporelle : O(1) pour l'application d'un élément sauf que les app
 
 ## Mode d'emploi
 
+C'est un projet organisé avec dune. On peut soit utiliser les commandes dune
+
+```
+dune build
+dune run
+dune test
+...
+```
+
+ou des lignes de commandes.
+
 ### Compilation
 
-```dune build``` ou ```make```
+```make```  
+```make run``` pour exécuter
 
 ### Installation
 
@@ -143,4 +155,16 @@ pf23> 42
 
 ### Test
 
-1. Installer OUnit2; 2. ```dune test``` ou ```make test```
+1. Installer ppx_inline_test ```opam install ppx_inline_test.v0.14.1```;
+2. ```make test```
+
+ou tester avec utop
+
+```
+$ dune utop
+utop # Pf23.(eval_prog env (parse "1 2 3 > IF -1 ELSE :"));;
+- : Pf23.env =
+([Pf23.N 1],
+ [(Pf23.Def (None, 0, []), <abstr>); (Pf23.Cond (Some true), <abstr>);
+  (Pf23.Call, <abstr>)])
+```
