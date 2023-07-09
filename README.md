@@ -119,9 +119,28 @@ Le mis à jour de env par application d'un élément est naturel. En pratique, p
 
 Complexité temporelle : O(1) pour l'application d'un élément sauf que les appels de fonction.
 
-## Mode d'installation, utilisation, et test
+## Mode d'emploi
 
+### Compilation
+
+```dune build``` ou ```make```
+
+### Installation
+
+```shell
+> opam switch create . --empty #to create a local swtich
+> eval $(opam env) #to load the new switch
+> opam install . to install from source#
 ```
-to create a local swtich : opam switch create . --empty
-to install from source : opam install .
+
+### Utilisation
+
+```shell
+$ pf23
+pf23> 42
+42
 ```
+
+### Test
+
+1. Installer OUnit2; 2. ```dune test``` ou ```make test```
