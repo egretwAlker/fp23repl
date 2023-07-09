@@ -149,11 +149,15 @@ ou des lignes de commandes.
 
 ### Utilisation
 
+Après l'installation:
+
 ```shell
 $ pf23
 pf23> 42
 42
 ```
+
+ou après la compilation: ```make run```
 
 ### Test
 
