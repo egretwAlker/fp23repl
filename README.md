@@ -117,6 +117,11 @@ Call
 
 Le mis à jour de env par application d'un élément est naturel. En pratique, pour minimiser la duplication de code, on traite les cas effectif dans ```eval_prog```, les cas ```step```, si l'une des 2 reçoit un cas contraire, elle passe la tâche à l'autre.
 
-## Outro
-
 Complexité temporelle : O(1) pour l'application d'un élément sauf que les appels de fonction.
+
+## Mode d'installation, utilisation, et test
+
+```
+to create a local swtich : opam switch create . --empty
+to install from source : opam install .
+```
