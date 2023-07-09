@@ -5,11 +5,10 @@ synopsis: "REPL for Pf23"
 maintainer: ["XIA Tianxiang"]
 authors: ["XIA Tianxiang"]
 license: "MIT"
-homepage: "https://github.com/egretwalker/pf23repl"
-bug-reports: "https://github.com/egretwalker/pf23repl/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.8"}
+  "ppx_inline_test" {= "v0.14.1"}
   "odoc" {with-doc}
 ]
 build: [
@@ -26,4 +25,3 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/egretwalker/pf23repl.git"
