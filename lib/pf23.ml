@@ -152,28 +152,25 @@ let rec find (sdico:sdico) (name:name) : prog =
   | [] -> failwith ("\""^name^"\" not found in sdico")
   | (_, dico)::l -> (try request dico name with Request_dico_failed _ -> find l name)
 
-(*
-Les 2 fonctions suivantes sont essentielles. Ici on explique l'algorithme.
-
-
-
-*)
+(* Les 2 fonctions suivantes sont essentielles. c.f. README.md *)
 
 let rec eval_prog env prog = 
   let (stk, _, _, l, sdico) = unpack env in
   let make_env ?(stk=stk) sp sdico = (stk, (sp, empty_dico)::sdico) in
 
-  match prog with [] -> env | e::progl ->
-                if not (effective env) then eval_prog (step env e) progl else
-                match e with
-                  Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
-                | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
-                | If -> (match stk with (B b)::stkl -> eval_prog (make_env ~stk:stkl (Cond (Some b)) sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
-                | Then -> eval_prog (stk, l) progl
-                | Else -> eval_prog (make_env (Cond (Some false)) l) progl
-                | Endif -> eval_prog (stk, l) progl
-                | _ -> if is_basic e then eval_prog (eval_basic stk e, sdico) progl
-                                              else fail_at e
+  match prog with
+    [] -> env
+    | e::progl ->
+      if not (effective env) then eval_prog (step env e) progl else
+      match e with
+        Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
+      | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
+      | If -> (match stk with (B b)::stkl -> eval_prog (make_env ~stk:stkl (Cond (Some b)) sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
+      | Then -> eval_prog (stk, l) progl
+      | Else -> eval_prog (make_env (Cond (Some false)) l) progl
+      | Endif -> eval_prog (stk, l) progl
+      | _ -> if is_basic e then eval_prog (eval_basic stk e, sdico) progl
+                           else fail_at e
 
 and step env e =
   if effective env then eval_prog env [e;] else

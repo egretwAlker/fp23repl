@@ -2,7 +2,7 @@
 
 ## Pf23
 
-Pf23 est un langage conçu par Monsieur Emmanuel Chailloux à une data inconnue pour l'UE LU2IN119 été-2023 qui ressembler à PostScript.
+Pf23 est un langage conçu par Monsieur Emmanuel Chailloux à une data inconnue pour l'UE LU2IN119 été-2023 qui ressemble à PostScript.
 
 ## Syntaxe
 
@@ -88,36 +88,35 @@ soit il est un opérateur basique ```<op>```, on peut l'appliquer directement au
 
 Donc le programme a besoin de savoir au moins 1. le stack actuel; 2. si l'on est en état effectif ou non (dans un milieu d'une définition de fonction ou une branche de if non effective); 3. des dictionnaires pour des portées pilées. On appelle l'ensemble de ce genre d'information *environnement* (env).
 
-On ajoute des données d'informations à env pour que
+On ajoute des données d'informations à env pour qu'il existe une façon unique de mettre à jour env. On propose la définition de env suivant:
 
-Totally interactive
+```ocaml
+type scope = Cond of bool option | Def of name option*int*element list | Call
+type sdico = (scope*dico) list
+type env = stack*sdico
+```
 
-pretty print
+stack représente la pile globale, un sdico est une pile de dictionnaires qui enregistrent les définitions de fonction dans chaque scope. On tient aussi quelques informations spéficiques aux scopes.
 
-trace failure?
+```
+scope conditionel
+Cond of bool option
 
-Time complexity :
+Some true : on est en IF ... ou ELSE ... effectifs;
+Some false : on est en IF ... ou ELSE ... non-effectifs;
+None : on est dans un conditionnel qui est dans un conditionnel non effectif.
 
-On souhaite pouvoir réaliser:  
-On a un stack (vide initialement). À chaque fois on passe un élément et on met à jour le stack qui
-correspond à l'exécution de la suite des éléments passées (qui est un préfixe d'une expression).
+scope défnition de fonction
+Def of name option*int*element list
 
-Avec une suite d'éléments et un stack, on passe un autre élément, ce que passe pour le stack
-est la seuele chose l'interpreteur retourne à l'utilisateur. 
+Le nom du fonction (option car on ne le sait pas en recevant :); une liste d'élément qui enregistre le programme de cette fonction.
 
-Le principe de l'évalutation consiste à mettre à jour l'env à chaque élément.
-Un env consiste en un stack sur lequel on opère,
-une pile de (scope*dico) qui mémorise la hiérachie de l'exécution
-(e.g. If ... If (Id fn) Then ... Then, quand on exécution la fonction fn, on aura l'hiérarchie Call::Cond::Cond::Call::[]),
-où chaque élément et un registrement d'une description de scope et la dictionnaire associée à ce scope
+scope d'exécution globale ou d'une fonction
+Call
+```
 
-Les descriptions des scopes:
-Pour Call, pas de descriptions supplémentaires. Pour Cond, avant de rentrer ce scope, 
+Le mis à jour de env par application d'un élément est naturel. En pratique, pour minimiser la duplication de code, on traite les cas effectif dans ```eval_prog```, les cas ```step```, si l'une des 2 reçoit un cas contraire, elle passe la tâche à l'autre.
 
-Un env est soit en état effective, soit en état non effective (c.f. la commentaire de [effective]).
+## Outro
 
-Pour le developpeur,
-[eval_prog] traite des cas en état effective sinon il passe la tâche à [step].
-[step] traite des cas en état non effective sinon il passe la tâche à [eval_prog].
-C'est pour minimiser la duplication de code.
-Pour l'utilisateur, la différence des 2 est seuelement l'un applique les éléments dans une liste, l'autre applique un élément.
+Complexité temporelle : O(1) pour l'application d'un élément sauf que les appels de fonction.

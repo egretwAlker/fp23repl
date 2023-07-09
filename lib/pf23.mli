@@ -11,7 +11,7 @@ val parse : string -> prog
 *)
 val text : stack -> string
 
-(** applique prog à env et retourne le résultat *)
+(** applique un programme à env et retourne le résultat *)
 val eval_prog : env -> prog -> env
 
 (** applique un element à env et retourne le résultat *)
