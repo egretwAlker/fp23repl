@@ -102,6 +102,8 @@ let split (s:string) : string list =
   (* ignore les espaces successifs *)
   List.filter ((<>) "") split_s ;;
 
+let%test _ = split "A \n B   C" = ["A";"B";"C"]
+
 (** transforme un texte (représentant un programme ou une pile)
     en une suite de symboles du langage (e.g., "42" et "DUP") 
 *)
@@ -208,6 +210,8 @@ let%test "factorial" = (interpret ": FACTORIELLE DUP 1 > IF DUP 1 - FACTORIELLE 
 let%test "non-mod-add" = interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ; 1 2 $+" = "3 2 1"
 
 let%test "fibonacci" = (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
-                                                   : FIB 0 1 : FIB ROT ROT DUP 0 = IF DROP DROP ELSE 1 - ROT $+ ROT ROT DROP FIB ENDIF ; FIB ;
-                                                   7 FIB FIB") = "233"
+                                   : FIB 0 1 : FIB ROT ROT DUP 0 = IF DROP DROP ELSE 1 - ROT $+ ROT ROT DROP FIB ENDIF ; FIB ;
+                                   7 FIB FIB") = "233"
+let%test "fibonacci_bis" = (interpret ": FIB : $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ; 0 1 : FIB ROT ROT DUP 0 = IF DROP DROP ELSE 1 - ROT $+ ROT ROT DROP FIB ENDIF ; FIB ;
+                                      7 FIB FIB") = "233"
 let%test "grammar" = (interpret "TRUE IF 2 ELSE 3 ELSE 4") = "4 2"
