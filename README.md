@@ -20,7 +20,7 @@ Pf23 est un langage conçu par Monsieur Emmanuel Chailloux à une data inconnue 
           ∣ [-] (0o ∣ 0O) (0…7) { 0…7 ∣ _ }
           ∣ [-] (0b ∣ 0B) (0…1) { 0…1 ∣ _ }
 <bool> ::= TRUE|FALSE
-<id>   ::= une suite de char qui n'est pas un mot-clé défini dessus
+<id>   ::= une suite non vide de char qui n'est pas un mot-clé défini dessus
 ```
 
 ## Sémantique
@@ -46,6 +46,9 @@ opérateurs de pile
 opérateurs arithmétiques et de comparaison
 - *, /,+,- (a b -- b op a ) b op a dénote un entier.
 - =,<>,<,> (a b -- b op a ) b op a dénote un booléen (TRUE ou FALSE).
+
+- <num> ( -- <num> )
+- <bool> ( -- <bool> )
 
 <dec> définit une fonction qui pourra être appelée par <id>  
 <cond> s'exécute de manière dépendante de la tête booléenne de la pile (IF supprime la tête)
@@ -136,15 +139,17 @@ ou des lignes de commandes.
 
 ### Compilation
 
-```make```  
-```make run``` pour exécuter
+```shell
+opam install . --deps-only # pour installer les dépendances
+make # compiler
+```  
 
 ### Installation
 
 ```shell
-> opam switch create . --empty #to create a local swtich
-> eval $(opam env) #to load the new switch
-> opam install . to install from source#
+> opam switch create . --empty # to create a local swtich
+> eval $(opam env) # to load the new switch
+> opam install . # to install from source#
 ```
 
 ### Utilisation
@@ -164,9 +169,9 @@ ou après la compilation: ```make run```
 1. Installer ppx_inline_test ```opam install ppx_inline_test.v0.14.1```;
 2. ```make test```
 
-ou tester avec utop
+ou tester avec utop (pour afficher plus de détailes il faut modifier les interfaces)
 
-```
+```ocaml
 $ dune utop
 utop # Pf23.(eval_prog env (parse "1 2 3 > IF -1 ELSE :"));;
 - : Pf23.env =

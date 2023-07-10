@@ -119,7 +119,7 @@ let eval_binop op (e1:element) (e2:element) : element = match (e1, e2) with (N x
               | _ -> expect "binop"
   ) | _ -> fail_at op
 
-(** fonction auxiliaire : évaluation d'un opérateur binaire *)
+(** fonction auxiliaire : évaluation d'un opérateur pile *)
 let eval_stackop (stk:stack) op : stack =
   match op with Dup -> (match stk with e::l -> e::e::l | _ -> fail_at op)
               | Drop -> (match stk with _::l -> l | _ -> fail_at op)
@@ -127,8 +127,7 @@ let eval_stackop (stk:stack) op : stack =
               | Rot -> (match stk with a::b::c::l -> b::c::a::l | _ -> fail_at op)
               | _ -> expect "stackop"
 
-(** [step stk e] exécute l'élément [e] dans la pile [stk] 
-   et retourne la pile résultante *)
+(** fonction auxiliaire :  évaluation des opérateurs basiques (non appel de fonction, c.f. [is_basic]) *)
 let eval_basic (stk:stack) (e:element) : stack =
   if is_basic e then
     if is_binop e then match stk with e1::e2::l -> eval_binop e e1 e2::l | _ -> fail_at e
@@ -157,41 +156,51 @@ let rec find (sdico:sdico) (name:name) : prog =
   | [] -> failwith ("\""^name^"\" not found in sdico")
   | (_, dico)::l -> (try request dico name with Request_dico_failed _ -> find l name)
 
-(* Les 2 fonctions suivantes sont essentielles. c.f. README.md *)
+(* Les 2 fonctions suivantes sont essentielles. c.f. README.md/Implémenntation, algorithme *)
 
 let rec eval_prog env prog = 
-  let (stk, _, _, l, sdico) = unpack env in
-  let make_env ?(stk=stk) sp sdico = (stk, (sp, empty_dico)::sdico) in
-
   match prog with
     [] -> env
     | e::progl ->
       if not (effective env) then eval_prog (step env e) progl else
-      match e with
-        Id s -> eval_prog (get_stk (eval_prog (make_env Call sdico) (find sdico s)), sdico) progl
-      | Colon -> eval_prog (make_env (Def (None, 0, [])) sdico) progl
-      | If -> (match stk with (B b)::stkl -> eval_prog (make_env ~stk:stkl (Cond (Some b)) sdico) progl | _ -> failwith "If failed because stack empty or top non boolean")
-      | Then -> eval_prog (stk, l) progl
-      | Else -> eval_prog (make_env (Cond (Some false)) l) progl
-      | Endif -> eval_prog (stk, l) progl
-      | _ -> if is_basic e then eval_prog (eval_basic stk e, sdico) progl
-                           else fail_at e
+        let (stk, _, _, l, sdico) = unpack env in
+        let make_env ?(stk=stk) ?(sdico=sdico) sp  = (stk, (sp, empty_dico)::sdico) in
+
+        match e with
+          Id s -> eval_prog (get_stk (eval_prog (make_env Call) (find sdico s)), sdico) progl
+        | Colon -> eval_prog (make_env (Def (None, 0, []))) progl
+        | If -> (match stk with (B b)::stkl -> eval_prog (make_env ~stk:stkl (Cond (Some b))) progl | _ -> failwith "If failed because stack empty or top non boolean")
+        | Then -> eval_prog (stk, l) progl
+        | Endif -> eval_prog (stk, l) progl
+        | Else -> eval_prog (make_env ~sdico:l (Cond (Some false))) progl
+        | _ -> if is_basic e then eval_prog (eval_basic stk e, sdico) progl
+                             else fail_at e
 
 and step env e =
   if effective env then eval_prog env [e;] else
 
   let end_def (env:env) =
-    match env with (stk, (Def (Some name, _, reg), _)::(sp, dico)::l) -> (stk, (sp, insert dico (name, List.rev reg))::l) | _ -> failwith "Can not end_def, no outter dico" in
+    match env with
+    | (stk, (Def (Some name, _, reg), _)::(sp, dico)::l)
+      -> (stk, (sp, insert dico (name, List.rev reg))::l)
+    | _ -> failwith "Can not end_def, no outter dico" in
 
   let (stk, sp, _, l, sdico) = unpack env in
   let make_env sp sdico = (stk, (sp, empty_dico)::sdico) in
 
   match sp with
-  | Cond c -> (match e with If -> make_env (Cond None) sdico | Then -> (stk, l) | Endif -> (stk, l) | Else -> make_env (Cond (option_not c)) l | _ -> env)
+  | Cond c -> begin
+    match e with
+    | If -> make_env (Cond None) sdico
+    | Then -> (stk, l)
+    | Endif -> (stk, l)
+    | Else -> make_env (Cond (option_not c)) l
+    | _ -> env
+  end
   | Def (name, cnt, reg) ->
-    if name = None then
-      (match e with Id s -> make_env (Def (Some s, cnt, reg)) l | _ -> expect "Id")
-    else begin
+    if name = None then begin
+      match e with Id s -> make_env (Def (Some s, cnt, reg)) l | _ -> expect "Id"
+    end else begin
       match e with Colon -> make_env (Def (name, cnt+1, e::reg)) l
                  | Semic -> if cnt = 0 then end_def env
                                        else make_env (Def (name, cnt-1, e::reg)) l
