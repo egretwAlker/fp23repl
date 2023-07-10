@@ -230,6 +230,7 @@ let%test "fibonacci_bis" = (interpret ": FIB : $+ DUP ROT ROT DUP ROT + ROT SWAP
                                       7 FIB FIB") = "233"
 let%test "grammar" = (interpret "TRUE IF 2 ELSE 3 ELSE 4") = "4 2"
 
+(* the preparational layout *)
 let%test "prime_prepa" = (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
                                : $- DUP ROT ROT DUP ROT - ROT SWAP ROT ROT ;
                                : #+ $+ SWAP DROP ;
