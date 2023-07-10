@@ -30,6 +30,8 @@ let empty_dico = Node (None, [])
 (** supprime le premier char *)
 let tail s = String.sub s 1 (String.length s - 1)
 
+let%test _ = tail "123" = "23"
+
 let rec insert dico p = let Node (q, l) = dico in
   match p with
   | ("", prog) -> Node (Some prog, l)
@@ -55,6 +57,9 @@ let rec request dico s =
     | (c, d)::l ->
       if s0 = c then request d sl
       else request (Node (q, l)) s
+  
+  let%test _ = request (insert (insert empty_dico ("name", [N 1])) ("name", [B false])) "name" = [B false]
+  let%test _ = request (insert (insert empty_dico ("name", [N 1])) ("namee", [B false])) "name" = [N 1]
 end
 
 open Dico
