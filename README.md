@@ -122,6 +122,14 @@ Call
 
 Le mis à jour de env par application d'un élément est naturel. En pratique, pour minimiser la duplication de code, on traite les cas effectif dans ```eval_prog```, les cas ```step```, si l'une des 2 reçoit un cas contraire, elle passe la tâche à l'autre.
 
+### Gestion d'appel de fonction
+
+```ocaml
+Id s -> eval_prog (get_stk (eval_prog (make_env Call) (find sdico s)), sdico) progl
+```
+
+Étant donné en état effectif un appel de fonction, on évalue d'abord le programme enregistré ```find sdico s``` dans un env qui est l'ancien + un nouveau scope ```Call```, et on évalue le reste du programme avec le nouveau stack après l'évaluation de la fonction.
+
 Complexité temporelle : O(1) pour l'application d'un élément sauf que les appels de fonction.
 
 ## Mode d'emploi
