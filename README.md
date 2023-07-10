@@ -126,6 +126,8 @@ Complexité temporelle : O(1) pour l'application d'un élément sauf que les app
 
 ## Mode d'emploi
 
+> Tout cela marche bien sur mon ordinateur, au cas d'erreur, on met dans ```backup/main.ml``` une version tout en un fichier.
+
 C'est un projet organisé avec dune. On peut soit utiliser les commandes dune
 
 ```
