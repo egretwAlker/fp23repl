@@ -229,3 +229,25 @@ let%test "fibonacci" = (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
 let%test "fibonacci_bis" = (interpret ": FIB : $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ; 0 1 : FIB ROT ROT DUP 0 = IF DROP DROP ELSE 1 - ROT $+ ROT ROT DROP FIB ENDIF ; FIB ;
                                       7 FIB FIB") = "233"
 let%test "grammar" = (interpret "TRUE IF 2 ELSE 3 ELSE 4") = "4 2"
+
+let%test "prime_prepa" = (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
+                               : $- DUP ROT ROT DUP ROT - ROT SWAP ROT ROT ;
+                               : #+ $+ SWAP DROP ;
+                               : #- $- SWAP DROP ;
+                               : $= DUP ROT ROT DUP ROT = ROT SWAP ROT ROT ;
+                               : DDUP $+ $- SWAP $- SWAP DROP ;
+                               : PM 1 : AUX $= IF DROP DROP ELSE DDUP 1 + AUX THEN ; AUX ; 6 PM") = "5 6 4 6 3 6 2 6 1 6"
+
+(* test if a number >= 3 is a prime number *)
+let%test "prime" = (interpret ": $+ DUP ROT ROT DUP ROT + ROT SWAP ROT ROT ;
+                               : $- DUP ROT ROT DUP ROT - ROT SWAP ROT ROT ;
+                               : #+ $+ SWAP DROP ;
+                               : #- $- SWAP DROP ;
+                               : $= DUP ROT ROT DUP ROT = ROT SWAP ROT ROT ;
+                               : #= $= SWAP DROP ;
+                               : DDUP $+ $- SWAP $- SWAP DROP ;
+                               : PM 1
+                                : AUX $= IF DROP DROP ELSE DDUP 1 + AUX THEN ; AUX
+                                : AUX DUP ROT ROT DUP ROT SWAP / ROT ROT * = IF : CLR 1 = IF DROP ELSE DROP CLR THEN ; CLR FALSE ELSE 1 #= IF DROP DROP TRUE ELSE AUX THEN ;
+                                AUX ;
+                                1237 PM 1234 PM 123 PM 13 PM 7 PM 6 PM 5 PM") = "TRUE FALSE TRUE TRUE FALSE FALSE TRUE"
